@@ -30,7 +30,8 @@ def get_service():
 service = get_service()
 
 # List the 10 most recent messages
-sender="noreply@steampowered.com"
+email_address = input("Enter your email address: ")
+sender=email_address
 labels = service.users().labels().list(userId="me").execute().get("labels", [])
 
 
@@ -50,7 +51,7 @@ def get_or_create_label(service, name):
     return created["id"]
 
 
-label_name = "Steam"
+label_name = input("Enter the label name to apply: ")
 label_id = get_or_create_label(service, label_name)
 results = service.users().messages().list(
     userId="me", q=f'from:{sender} -label:"{label_name}"', maxResults=500
