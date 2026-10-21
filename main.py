@@ -4,8 +4,10 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-
+from dotenv import load_dotenv
+from gmail_service import get_service, get_or_create_label
 # Use the narrowest scope you need
+load_dotenv()  # Load environment variables from .env file
 SCOPES = ["https://www.googleapis.com/auth/gmail.modify"]
 logging.basicConfig(
     level=logging.INFO,
@@ -13,46 +15,19 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(), logging.FileHandler("sort.log")],
 )
 
-def get_service():
-    creds = None
-    if os.path.exists("token.json"):
-        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file("client_secret.json", SCOPES)
-            creds = flow.run_local_server(port=0)  # opens browser for consent
-        with open("token.json", "w") as f:
-            f.write(creds.to_json())
-    return build("gmail", "v1", credentials=creds)
+
 
 service = get_service()
+
 
 # List the 10 most recent messages
 email_address = input("Enter your email address: ")
 sender=email_address
 labels = service.users().labels().list(userId="me").execute().get("labels", [])
 
-
-def get_or_create_label(service, name):
-    labels = service.users().labels().list(userId="me").execute().get("labels", [])
-    for label in labels:
-        if label["name"].lower() == name.lower():
-            return label["id"]
-    created = service.users().labels().create(
-        userId="me",
-        body={
-            "name": name,
-            "labelListVisibility": "labelShow",
-            "messageListVisibility": "show",
-        },
-    ).execute()
-    return created["id"]
-
-
 label_name = input("Enter the label name to apply: ")
 label_id = get_or_create_label(service, label_name)
+
 results = service.users().messages().list(
     userId="me", q=f'from:{sender} -label:"{label_name}"', maxResults=500
 ).execute()
